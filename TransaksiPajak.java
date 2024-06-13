@@ -6,26 +6,34 @@ class TransaksiPajak {
     int bulanBayar;
     Kendaraan kendaraan;
 
-    public TransaksiPajak(int kode,long nominalBayar,long denda, int bulanBayar, Kendaraan kendaraan) {
-        this.kode = kode;
+    public TransaksiPajak(long nominalBayar, long denda, int bulanBayar, Kendaraan kendaraan) {
+        this.kode = kodeGenerator++;
         this.nominalBayar = nominalBayar;
         this.denda = denda;
         this.bulanBayar = bulanBayar;
         this.kendaraan = kendaraan;
     }
 
-    public class AntrianPajak {
-        ArrayList<Kendaraan> kendaraanList = new ArrayList<>();
-        ArrayList<TransaksiPajak> transaksiList = new ArrayList<>();
+    public static class AntrianPajak {
+        private static final int MAX_KENDARAAN = 100;
+        private static final int MAX_TRANSAKSI = 1000;
+        private Kendaraan[] kendaraanList = new Kendaraan[MAX_KENDARAAN];
+        private TransaksiPajak[] transaksiList = new TransaksiPajak[MAX_TRANSAKSI];
+        private int kendaraanCount = 0;
+        private int transaksiCount = 0;
 
         void tambahKendaraan(Kendaraan kendaraan) {
-            kendaraanList.add(kendaraan);
+            if (kendaraanCount < MAX_KENDARAAN) {
+                kendaraanList[kendaraanCount++] = kendaraan;
+            } else {
+                System.out.println("Daftar kendaraan sudah penuh.");
+            }
         }
-    
+
         public Kendaraan cariKendaraan(String noTNKB) {
-            for (Kendaraan kendaraan : kendaraanList) {
-                if (kendaraan.noTNKB.equals(noTNKB)) {
-                    return kendaraan;
+            for (int i = 0; i < kendaraanCount; i++) {
+                if (kendaraanList[i].noTNKB.equals(noTNKB)) {
+                    return kendaraanList[i];
                 }
             }
             return null;
@@ -37,13 +45,17 @@ class TransaksiPajak {
                 System.out.println("Kendaraan dengan TNKB " + noTNKB + " tidak ditemukan.");
                 return;
             }
-    
+
             long nominalBayar = hitungNominalBayar(kendaraan, bulanBayar);
             long denda = hitungDenda(kendaraan, bulanBayar);
 
             TransaksiPajak transaksi = new TransaksiPajak(nominalBayar, denda, bulanBayar, kendaraan);
-            transaksiList.add(transaksi);
-    
+            if (transaksiCount < MAX_TRANSAKSI) {
+                transaksiList[transaksiCount++] = transaksi;
+            } else {
+                System.out.println("Daftar transaksi sudah penuh.");
+            }
+
             System.out.println("Pembayaran pajak berhasil direkam.");
             System.out.println("Kode Transaksi: " + transaksi.kode);
             System.out.println("Nomor TNKB: " + kendaraan.noTNKB);
@@ -51,13 +63,13 @@ class TransaksiPajak {
             System.out.println("Nominal Bayar: " + nominalBayar);
             System.out.println("Denda: " + denda);
         }
-    
+
         // Method untuk menghitung nominal bayar pajak
         long hitungNominalBayar(Kendaraan kendaraan, int bulanBayar) {
             int bulanHarusBayar = kendaraan.bulanHarusBayar;
             int cc = kendaraan.cc;
             long tarifPajak = 0;
-    
+
             // Menentukan tarif pajak berdasarkan jenis kendaraan dan cc
             if (kendaraan.jenis.equals("motor")) {
                 if (cc < 100) {
@@ -76,14 +88,14 @@ class TransaksiPajak {
                     tarifPajak = 1500000;
                 }
             }
-    
+
             return tarifPajak;
         }
-    
+
         // Method untuk menghitung denda
         long hitungDenda(Kendaraan kendaraan, int bulanBayar) {
             int bulanHarusBayar = kendaraan.bulanHarusBayar;
-    
+
             // Hitung denda jika bulanBayar > bulanHarusBayar
             long denda = 0;
             if (bulanBayar > bulanHarusBayar) {
@@ -94,19 +106,20 @@ class TransaksiPajak {
                     denda = 3 * 50000 + (selisihBulan - 3) * 50000;
                 }
             }
-    
+
             return denda;
         }
-    
+
         public void tampilkanTransaksi() {
-            if (transaksiList.isEmpty()) {
+            if (transaksiCount == 0) {
                 System.out.println("Belum ada transaksi pajak yang direkam.");
                 return;
             }
-    
+
             System.out.println("Daftar Transaksi Pajak:");
             long totalPendapatan = 0;
-            for (TransaksiPajak transaksi : transaksiList) {
+            for (int i = 0; i < transaksiCount; i++) {
+                TransaksiPajak transaksi = transaksiList[i];
                 System.out.println("Kode Transaksi: " + transaksi.kode);
                 System.out.println("Nomor TNKB: " + transaksi.kendaraan.noTNKB);
                 System.out.println("Pemilik: " + transaksi.kendaraan.nama);
@@ -116,24 +129,29 @@ class TransaksiPajak {
             }
             System.out.println("Total Pendapatan: " + totalPendapatan);
         }
-    
+
         public void urutkanTransaksiNama() {
-            if (transaksiList.isEmpty()) {
+            if (transaksiCount == 0) {
                 System.out.println("Belum ada transaksi pajak yang direkam.");
                 return;
             }
 
-            Comparator<TransaksiPajak> comparator = new Comparator<TransaksiPajak>() {
-                public int compare(TransaksiPajak t1, TransaksiPajak t2) {
-                    String nama1 = t1.kendaraan.nama.split(" ")[0];
-                    String nama2 = t2.kendaraan.nama.split(" ")[0];
-                    return nama1.compareTo(nama2);
+            // Bubble Sort berdasarkan nama
+            for (int i = 0; i < transaksiCount - 1; i++) {
+                for (int j = 0; j < transaksiCount - i - 1; j++) {
+                    String nama1 = transaksiList[j].kendaraan.nama.split(" ")[0];
+                    String nama2 = transaksiList[j + 1].kendaraan.nama.split(" ")[0];
+                    if (nama1.compareTo(nama2) > 0) {
+                        TransaksiPajak temp = transaksiList[j];
+                        transaksiList[j] = transaksiList[j + 1];
+                        transaksiList[j + 1] = temp;
+                    }
                 }
-            };
-    
-            Collections.sort(transaksiList, comparator);
+            }
+
             System.out.println("Transaksi Pajak setelah diurutkan:");
-            for (TransaksiPajak transaksi : transaksiList) {
+            for (int i = 0; i < transaksiCount; i++) {
+                TransaksiPajak transaksi = transaksiList[i];
                 System.out.println("Kode Transaksi: " + transaksi.kode);
                 System.out.println("Nomor TNKB: " + transaksi.kendaraan.noTNKB);
                 System.out.println("Pemilik: " + transaksi.kendaraan.nama);
